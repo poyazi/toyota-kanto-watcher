@@ -1,54 +1,61 @@
 name: watch-kanto
 
-# ─────────────────────────────────────────────
-# トリガ
-# ─────────────────────────────────────────────
+# ───────────────────────────────
+# ① トリガー
+# ───────────────────────────────
 on:
- schedule:
-  # 5 分おき
-  - cron: "*/5 * * * *"
- workflow_dispatch: # 手動実行も可
+  schedule:
+    # 5 分おきに実行
+    - cron: '*/5 * * * *'
+  workflow_dispatch:          # 手動実行も可
 
-# ─────────────────────────────────────────────
-# 同時実行を 1 本に制限
-# ─────────────────────────────────────────────
+# ───────────────────────────────
+# ② 同時実行を 1 本に制限
+# ───────────────────────────────
 concurrency:
- group: kanto-watcher # 固定名で並列抑止
- cancel-in-progress: false # 先行ジョブを優先
+  group: kanto-watcher
+  cancel-in-progress: false   # 先行ジョブを優先
 
+# ───────────────────────────────
+# ③ ジョブ
+# ───────────────────────────────
 jobs:
- check:
-  runs-on: ubuntu-latest
+  check:
+    runs-on: ubuntu-latest
 
-  steps:
-   # 1. ソース取得
-   - uses: actions/checkout@v4
+    steps:
+      # 1) ソース取得
+      - name: Checkout
+        uses: actions/checkout@v4
 
-   # 2. Node 20
-   - uses: actions/setup-node@v4
-     with:
-      node-version: 20
+      # 2) Node.js 20
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-   # 3. .cache を復元
-   - uses: actions/cache@v4
-     with:
-      path: .cache
-      key: kanto-watch-cache
+      # 3) .cache を復元
+      - name: Restore .cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache
+          key: kanto-watch-cache
 
-   # 4. 依存インストール（package-lock.json 前提）
-   - name: Install deps
-     run: npm ci
+      # 4) 依存インストール
+      - name: Install dependencies
+        run: npm ci
 
-   # 5. ウォッチャ実行
-   - name: Run watcher
-     run: npx ts-node ./src/index.ts
-     env:
-      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      # 5) ウォッチャ実行
+      - name: Run watcher
+        run: npx ts-node ./src/index.ts
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-   # 6. 実行後に .cache を保存（内容が変わった場合のみアップロード）
-   - uses: actions/cache@v4
-     if: always()
-     with:
-      path: .cache
-      key: kanto-watch-cache
-      save-always: true
+      # 6) .cache を保存（失敗しても実行）
+      - name: Save .cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: kanto-watch-cache
