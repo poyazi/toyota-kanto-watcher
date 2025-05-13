@@ -5,16 +5,15 @@ name: watch-kanto
 # ───────────────────────────────
 on:
   schedule:
-    # 5 分おきに実行
-    - cron: '*/5 * * * *'
-  workflow_dispatch:          # 手動実行も可
+    - cron: '*/5 * * * *'      # 5 分おき
+  workflow_dispatch:            # 手動実行も可
 
 # ───────────────────────────────
 # ② 同時実行を 1 本に制限
 # ───────────────────────────────
 concurrency:
   group: kanto-watcher
-  cancel-in-progress: false   # 先行ジョブを優先
+  cancel-in-progress: false     # 先行ジョブを優先
 
 # ───────────────────────────────
 # ③ ジョブ
@@ -46,13 +45,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 5) ウォッチャ実行
+      # 5) ── ★ デバッグ: HTML に service-item が何件あるか ──
+      - name: Debug – count <li class="service-item">
+        run: |
+          echo 'service-item count:'
+          curl -s https://cp.toyota.jp/rentacar/ \
+            | grep -o 'class="service-item"' | wc -l
+
+      # 6) ウォッチャ実行
       - name: Run watcher
         run: npx ts-node ./src/index.ts
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      # 6) .cache を保存（失敗しても実行）
+      # 7) .cache を保存（失敗しても実行）
       - name: Save .cache
         if: always()
         uses: actions/cache/save@v4
