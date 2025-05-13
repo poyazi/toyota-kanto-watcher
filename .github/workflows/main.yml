@@ -1,4 +1,0 @@
-- name: Debug – count service-item
-  run: |
-    curl -s https://cp.toyota.jp/rentacar/ \
-      | grep -o 'class="service-item"' | wc -l
